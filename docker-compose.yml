@@ -1,0 +1,70 @@
+version: '3.7'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      PG_HOST: 'nrich-postgresql'
+      PG_USER: 'postgres'
+      PG_PASSWORD: 'root'
+      PG_DB: 'nrich'
+      PG_PORT: 5432
+      CH_HOST: 'nrich-clickhouse'
+      CH_PORT: 8123
+      CH_DB: 'nrich'
+      CH_USER: 'default'
+      CH_PASSWORD: ''
+    volumes:
+      - ./src:/usr/src/app/src
+    ports:
+      - 3000:3000
+    networks:
+      - data
+    restart: "always"
+    depends_on:
+      - postgresql
+      - ch_server
+    container_name: nrich-api
+
+  postgresql:
+    container_name: postgresql
+    image: postgres
+    hostname: "nrich-postgresql"
+    networks:
+      - data
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data/
+      - ./initPG.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - '5432:5432'
+    restart: "always"
+    environment:
+      PGDATA: /var/lib/postgresql/data
+      POSTGRES_DB: "nrich"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "root"
+      DOCKER_HOSTNAME_POSTGRESQL: "nrich-postgresql"
+
+  ch_server:
+    container_name: clickhouse
+    hostname: "nrich-clickhouse"
+    image: yandex/clickhouse-server
+    ports:
+      - "8123:8123"
+    volumes:
+      - ch_data:/var/lib/clickhouse
+      - ./initCH.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - data
+
+volumes:
+  postgresql_data:
+  ch_data:
+  portainer_data:
+
+networks:
+  data:
